@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Gamedev Canvas Workshop</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="myCanvas" width="800" height="600"></canvas>
+
+<script>
+  var canvas = document.getElementById("myCanvas");
+  var ctx = canvas.getContext("2d");
+  var ballRadius = 10;
+  var x = canvas.width/2;
+  var y = canvas.height-30;
+  var dx = 2;
+  var dy = -2;
+  var paddleHeight = 10;
+  var paddleWidth = 75;
+  var paddleX = (canvas.width-paddleWidth)/2;
+  var rightPressed = false;
+  var leftPressed = false;
+  // var brickRowCount = 5;
+  // var brickColumnCount = 3;
+  // var brickWidth = 75;
+  // var brickHeight = 20;
+  // var brickPadding = 10;
+  // var brickOffsetTop = 30;
+  // var brickOffsetLeft = 30;
+  var score = 0;
+  var frames_shown = 0;
+  var max_frames = 50;
+  var chosen_confidence = -1;
+  var trial_success = false;
+
+
+  //STATES
+  var position_ball = true;
+  var choose_direction = false;
+  var show_movement = false;
+  var position_paddle = false;
+  var ask_confidence = false;
+  var end_trial = false;
+
+  /*var bricks = [];
+  for(c=0; c<brickColumnCount; c++) {
+      bricks[c] = [];
+      for(r=0; r<brickRowCount; r++) {
+          bricks[c][r] = { x: 0, y: 0, status: 1 };
+      }
+  }*/
+
+  document.addEventListener("keydown", keyDownHandler, false);
+  document.addEventListener("keyup", keyUpHandler, false);
+  document.addEventListener("mousemove", mouseMoveHandler, false);
+  document.addEventListener("click", cursorClicked, true);
+
+  function keyDownHandler(e) {
+      if(e.keyCode == 39) {
+          rightPressed = true;
+      }
+      else if(e.keyCode == 37) {
+          leftPressed = true;
+      }
+      if (ask_confidence) {
+        if (e.keyCode > 47 && e.keyCode < 58) {
+          chosen_confidence = e.keyCode - 47;
+        }
+        ask_confidence = false;
+        end_trial = true;
+      }
+  }
+  function keyUpHandler(e) {
+      if(e.keyCode == 39) {
+          rightPressed = false;
+      }
+      else if(e.keyCode == 37) {
+          leftPressed = false;
+      }
+  }
+  function mouseMoveHandler(e) {
+      if (position_paddle){
+        var relativeX = e.clientX - canvas.offsetLeft;
+        if(relativeX > 0 && relativeX < canvas.width) {
+            paddleX = relativeX - paddleWidth/2;
+        }
+      }
+
+  }
+  // function collisionDetection() {
+  //     for(c=0; c<brickColumnCount; c++) {
+  //         for(r=0; r<brickRowCount; r++) {
+  //             var b = bricks[c][r];
+  //             if(b.status == 1) {
+  //                 if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+  //                     dy = -dy;
+  //                     b.status = 0;
+  //                     score++;
+  //                     if(score == brickRowCount*brickColumnCount) {
+  //                         alert("YOU WIN, CONGRATS!");
+  //                         document.location.reload();
+  //                     }
+  //                 }
+  //             }
+  //         }
+  //     }
+  // }
+
+  function drawBall() {
+      ctx.beginPath();
+      ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+  }
+  function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+  }
+
+  function cursorClicked(e) {
+    var rect = canvas.getBoundingClientRect();
+    var pointer_x = event.clientX - rect.left;
+    var pointer_y = event.clientY - rect.top;
+    if (position_ball){
+      x = pointer_x;
+      y = pointer_y;
+      position_ball = false;
+      choose_direction = true;
+    } else if (choose_direction) {
+      dx = (pointer_x - x)/max_frames;
+      dy = (pointer_y - y)/max_frames;
+      choose_direction = false;
+      show_movement = true;
+      frames_shown = 0;
+    } else if(position_paddle) {
+      position_paddle = false;
+      ask_confidence = true;
+    } else if(show_result) {
+      show_result = false;
+      position_ball = true;
+    }
+  }
+
+
+  // function drawBricks() {
+  //     for(c=0; c<brickColumnCount; c++) {
+  //         for(r=0; r<brickRowCount; r++) {
+  //             if(bricks[c][r].status == 1) {
+  //                 var brickX = (r*(brickWidth+brickPadding))+brickOffsetLeft;
+  //                 var brickY = (c*(brickHeight+brickPadding))+brickOffsetTop;
+  //                 bricks[c][r].x = brickX;
+  //                 bricks[c][r].y = brickY;
+  //                 ctx.beginPath();
+  //                 ctx.rect(brickX, brickY, brickWidth, brickHeight);
+  //                 ctx.fillStyle = "#0095DD";
+  //                 ctx.fill();
+  //                 ctx.closePath();
+  //             }
+  //         }
+  //     }
+  // }
+  function drawScore() {
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "#0095DD";
+      ctx.fillText("Score: "+score, 8, 20);
+  }
+  function drawConfidence() {
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "#0095DD";
+      ctx.fillText("Confianza: "+chosen_confidence, 8, 40);
+  }
+
+  function drawPositionRequest() {
+    ctx.font = "32px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText("Hacé click para posicionar la pelota.", 20, canvas.height/2);
+  }
+  function drawDirectionRequest() {
+    ctx.font = "32px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText("Hacé click para darle dirección y velocidad a la pelota.", 20, canvas.height/2);
+  }
+  function drawPaddleRequest() {
+    ctx.font = "24px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText("Hace click cuando creas que podés atajar la pelota con la paleta.", 20, canvas.height/2);
+  }
+  function drawAskConfidence() {
+    ctx.font = "32px Arial";
+    ctx.fillStyle = "#0095DD";
+    ctx.fillText("Cuan seguro estás que vas a atajar la pelota?", 20, canvas.height/2);
+    ctx.font = "16px Arial";
+    ctx.fillText("Presioná un número del 0 al 9 para indicar tu confianza, a número más alto, más confianza.", 20, canvas.height/2 + 30);
+  }
+
+  function drawSuccess() {
+    ctx.font = "32px Arial";
+    ctx.fillStyle = "#0095DD";
+    if (trial_success) {
+      ctx.fillText("Lo lograste!!!!", 20, canvas.height/2);
+    } else {
+      ctx.fillText("No pudo ser, a seguir intentándolo!", 20, canvas.height/2);
+    }
+    ctx.font = "16px Arial";
+    ctx.fillText("Hacé click para volver a jugar", 20, canvas.height/2 + 20);
+  }
+
+
+
+  function moveBall(){
+    if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
+        dx = -dx;
+    }
+    if(y + dy < ballRadius) {
+        dy = -dy;
+    }
+    else if(y + dy > canvas.height-ballRadius) {
+        if(x > paddleX && x < paddleX + paddleWidth) {
+            score += chosen_confidence;
+            trial_success = true;
+        }
+        else {
+            score -= chosen_confidence;
+            trial_success = false;
+
+        }
+        show_result = true;
+        end_trial = false;
+    }
+
+    // if(rightPressed && paddleX < canvas.width-paddleWidth) {
+    //     paddleX += 7;
+    // }
+    // else if(leftPressed && paddleX > 0) {
+    //     paddleX -= 7;
+    // }
+
+    x += dx;
+    y += dy;
+  }
+
+  function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // drawBricks();
+
+      if (position_ball){
+        drawPositionRequest();
+      } else if (choose_direction) {
+        drawBall();
+        drawDirectionRequest();
+      } else if (show_movement) {
+            drawBall();
+            drawPaddle();
+            moveBall();
+            frames_shown++
+            if (frames_shown == max_frames){
+              show_movement = false;
+              position_paddle = true;
+              frames_shown = 0;
+            }
+      } else if (position_paddle){
+        drawPaddle();
+        drawPaddleRequest();
+        drawBall();
+      } else if (ask_confidence) {
+        drawAskConfidence();
+        drawPaddle();
+        drawBall();
+      } else if (end_trial) {
+        drawPaddle();
+        drawBall();
+        moveBall();
+      } else if (show_result) {
+        drawBall();
+        drawPaddle();
+        drawSuccess();
+        // frames_shown++
+        // if (frames_shown == max_frames){
+        //   show_result = false;
+        //   position_ball = true;
+        //   frames_shown = 0;
+        // }
+      }
+      drawScore();
+      drawConfidence();
+      // collisionDetection();
+
+  }
+
+  setInterval(draw, 20);
+</script>
+
+</body>
+</html>
